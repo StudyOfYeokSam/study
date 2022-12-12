@@ -1,5 +1,9 @@
 # study 
 
+### 구성원
+- [chap95](https://github.com/chap95)
+- [Yoon-CH](https://github.com/Yoon-CH)
+- [amenooto](https://github.com/amenooto)
 ### 목표
 - React 와 Next.js 공식문서 1회독
 
