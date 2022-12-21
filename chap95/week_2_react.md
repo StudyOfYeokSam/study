@@ -111,7 +111,42 @@ React 16 버전부터 `<ErrorBoundary>` 를 통해서 에러 바운더리 내부
 
 고차 컴포넌트는 컴포넌트 로직을 재사용하기 위한 React의 기술이다. API의 일부가 아니고 React의 구성적 특성에서 나오는 패턴이다.
 
-HOC는 같이 읽어보면 좋을 것 같습니다. 저도 이해하기가 어렵네요...
+공식문서에서 소개하고 있는 코드는 클래스형 컴포넌트이다.
+두 코드는 확연히 다른 작업을 하지만 같은 pattern 을 가지고 있다.
+
+- 컴포넌트가 마운트되면, change listener 를 `DataSource` 에 추가
+- 리스너 안에서, 데이터 소스가 변경되면 `setState` 를 호출
+- 컴포넌트가 언마운트 되면 change listener를 삭제
+
+같은 패턴을 보인다면 해당 패턴을 한 곳에 정의하고 많은 컴포넌트에서 공유할 수 있게 하면 코드 재사용성이 증가한다. 이러한 경우에 HOC를 사용하면 좋다.
+
+공식문서에 예제코드에서는 HOC 내부에서 컴포넌트를 return 하도록 설정이 되어있다. 이 때 state를 사용하게 되는데 함수형 컴포넌트는 hook을 사용하기 때문에 공식문서에 적혀있는 예제코드를 그대로 사용하기에는 무리가 있다.
+
+HOC 는 각기 다른 state를 업데이트하고 각기 다른 컴포넌트를 랜더링 하지만 그 과정(패턴)이 동일하다면 하나의 컴포넌트로 래핑하여 코드 재사용성을 높이자는 취지가 있는 것 같다.
+
+패턴이 같기 때문에 HOC는 동일한 input에 동일한 output을 내는 순수함수다.
+
+HOC를 작성할 때는 원본 컴포넌트를 변경하는 로직을 구현하면 안된다는 Rule이 있다.
+공식문서에 `InputComponent` 의 프로토타입을 직접적으로 변경하는 로직을 보면 그 이유를 알 수 있다. `InputComponent` 컴포넌트를 조작하여 `EnhancedComponent` 에 저장하게 되는데 이 `EnhancedComponent` 에 또 다른 HOC를 적용하게 된다면 지금 `HOC` 가 무시된다. 또한 생명주기 메소드가 존재하지 않는 함수형 컴포넌트 에서도 작동하지 않는다.
+
+우리는 앞에서 컴포넌트 합성에 대한 개념을 배웠다. 이 개념을 `HOC` 에 적용시켜 변경 대신에 조합을 사용해보자. `InputComponent`를 한 번 더 다른 컴포넌트로 래핑한 후에 `InputComponent` 프로토타입에 적용했던 `componentDidUpdate` 함수를 Wrapper 컴포넌트의 `componentDidUpdate` 에 적용시켜주고 인자로 전달된 컴포넌트(`InputComponent`)를 랜더링 시켜준다.
+
+이렇게 하면 원본 컴포넌트를 변경하지 않고 컴포넌트에 기능을 추가할 수 있다.
+이러한 wrapping 방식을 통해서 관련없는 props도 전달이 가능하다.
+이는 관심사를 분리하는 행위이며 Wrapper Component 에서 주입한 props와 원본 컴포넌트에 그대로 주입되어야 하는 props를 구분해 코드 가독성을 높여준다.
+
+아래는 공식문서에 소개된 간단한 예제이다.
+
+```jsx
+const { extraProp, ...passThroughProps } = this.props;
+// passThroughProps는 원본 컴포넌트에 그대로 주입되어야 하는 props를 의미한다.
+const injectedProp = someStateOrInstanceMethod; // HOC에서 주입되어야 하는 props
+
+// wrapped component에 props를 전달합니다.
+return <WrappedComponent injectedProp={injectedProp} {...passThroughProps} />;
+```
+
+이러한 패턴은 클래스형 컴포넌트 뿐 아니라 함수형 컴포넌트에도 적용이 가능하니 기억해 두면 코드 가독성을 챙길 수 있다.
 
 # JSX 이해하기
 
