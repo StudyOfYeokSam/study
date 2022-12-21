@@ -148,6 +148,54 @@ return <WrappedComponent injectedProp={injectedProp} {...passThroughProps} />;
 
 이러한 패턴은 클래스형 컴포넌트 뿐 아니라 함수형 컴포넌트에도 적용이 가능하니 기억해 두면 코드 가독성을 챙길 수 있다.
 
+### 주의사항
+
+HOC를 사용하면서 몇 가지 주의사항이 존재한다.
+
+- render 메소드 안에서 고차 컴포넌트를 사용하지 마세요
+
+```jsx
+render() {
+  const EnhancedComponent = enhance(someComponent);
+  return <EnhancedComponent />
+}
+```
+
+위 코드는 `render` 메소드가 호출 될 때마다 새로운 `EnhancedComponent` 를 만든다. 이렇게 되면 성능상 이슈가 발생하며 컴포넌트의 `state` 가 초기화 되어 일관성을 해친다.
+
+- 정적 메소드는 반드시 따로 복사하세요.
+
+다음은 `WrappedComponent` 에 정적 메소드를 정의하여 HOC를 적용하는 예제이다. 문제가 있는 코드다.
+
+```jsx
+WrappedComponent.staticMethod = () => {};
+
+const EnhancedComponent = enhance(WrappedComponent);
+
+typeof EnhancedComponent.staticMethod === "undefined"; // true
+```
+
+이 문제를 해결하기 위해서는 아래와 같이 해야한다.
+
+```jsx
+const enhance = (WrappedComponent) => {
+  class Enhance extends React.Component {
+    /*...*/
+  }
+
+  Enhance.staticMethod = WrappedComponent.staticMethod;
+
+  return Enhance;
+};
+```
+
+WrappedCompoent에 정의된 정적 메소드를 Enhance의 정적 메소드에 복사한 후 return을 해줘야지 정적 메소드가 유지된다.
+
+- ref는 전달되지 않는다.
+
+HOC는 모든 props를 전달하는게 원칙이지만 `refs` 는 전달되지 않는다. 이는 `refs` 가 props로 취급이 되는게 아니라 `key` 처럼 특별하게 취급되기 때문이다. HOC의 결과로 나온 컴포넌트에 `ref` 를 추가할 경우 `ref`는 래핑된 컴포넌트가 아닌 가장 바깥쪽 컨테이너 컴포넌트의 인스턴스를 나타낸다.
+해당 문제를 해결하기 위해서는 `React.forwardRef` API를 사용해야 한다.
+
 # JSX 이해하기
 
 - 스코프내에 컴포넌트가 존재해야 한다.
