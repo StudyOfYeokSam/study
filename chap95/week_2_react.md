@@ -1,9 +1,11 @@
 # 접근성
 
 ### WAI-ARIA 속성
+
 접근성을 갖춘 Javascript 위젯을 만드는데 필요한 기술들이 담겨있다.
 
 ### 시맨틱 HTML
+
 HTML과 CSS 그리고 이벤트 핸들러를 통해서 HTML을 `div` 태그로만 구성할 수 있다. 웹 사이트에 방문하는 사용자 입장에서는 큰 문제가 없지만 `SEO` 와 웹 접근성 측면에서는 상당히 좋지 못한 구조다.
 특히 `<ol>`,`<ul>`,`<dl>` 과 같은 목록 태그들 또는 `<table>` 태그에서 문제가 두드러진다. 이 때 `<Fragment>` 컴포넌트를 활용해서 아래와 같이 묶어주는게 권장된다.
 
@@ -14,7 +16,7 @@ function ListItem({ item }) {
       <dt>{item.term}</dt>
       <dt>{item.description}</dt>
     </Fragment>
-  )
+  );
 }
 ```
 
@@ -27,22 +29,23 @@ function ListItem({ item }) {
       <dt>{item.term}</dt>
       <dt>{item.description}</dt>
     </>
-  )
+  );
 }
 ```
 
 매번 `<>` 태그르를 아무런 생각없이 사용해 왔는데 `<Fragment>` 의 다른 표현이었던걸 이제야 알았다. 내가 또 거리낌 없이 사용하는 코드 중에서 이런 코드가 있을까봐 두렵기도 하면서 설레기도 한다.
 
-
 ### 접근성 있는 폼
 
 ##### 라벨링
+
 `<input>` 과 `<textarea>` 같은 HTML form 컨트롤은 구분할 수 있는 라벨이 필요하다. 스크린 리더를 사용하지 않는 경우는 `placeholder` 또는 다른 방식으로 어떠한 정보가 들어가야 하는지 설명이 제공된다. 하지만 스크린 리더를 사용하는 사용자에게는 `<label>` 태그기 있지 않는 이상 해당 `form`에 어떠한 정보가 들어가야 하는지 알 수 없다. `<label>` 태그는 아래와 같이 `input` 태그와 사용할 수 있다.
 
 ```tsx
 <label htmlFor="namedInput">Name:</label>
 <input id="namedInput" type="text" name="name"/>
 ```
+
 다만 검색창과 같이 스크린 리더를 사용하는 사람에게만 적용하고 싶을 때는 `label` 태그에 `hidden` 속성을 사용해주면 된다.
 
 ```tsx
@@ -54,10 +57,192 @@ function ListItem({ item }) {
 ex) search button 과 함께있는 검색창
 
 ##### 포커스 컨트롤
+
 모든 웹 어플리케이션은 키보드만을 통해서 사용할 수 있어야 한다.
 
-React는 엘리먼트들을 지속적으로 변경하기 때문에 가끔 focus를 잃거나 엉뚱한 엘리먼트에 focus를 할 수 있다. React focus를 지정하려면 `ref` 를 사용할 수 있다. 
+React는 엘리먼트들을 지속적으로 변경하기 때문에 가끔 focus를 잃거나 엉뚱한 엘리먼트에 focus를 할 수 있다. React focus를 지정하려면 `ref` 를 사용할 수 있다.
 
 실습) 공식문서에서는 클래스형 컴포넌트 예시가 나와 있는데 이를 함수형 컴포넌트로 만들어보자
 
-##### 마우스와 포인터 이벤트
+# 코드 분할
+
+##### Route-based code splitting
+
+```tsx
+import React, { Suspense, lazy } from "react";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+
+const Home = lazy(() => import("./routes/Home"));
+const About = lazy(() => import("./routes/About"));
+
+const App = () => (
+  <Router>
+    <Suspense fallback={<div>Loading...</div>}>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/about" element={<About />} />
+      </Routes>
+    </Suspense>
+  </Router>
+);
+```
+
+path가 `<Route>` 컴포넌트의 path 와 일치할 때 해당하는 컴포넌트를 불러오는 방식이다. 이는 공식문서 `import()` 부분에서 동적 import를 하는 방식과 비슷하다. 더욱 자세한 내용은 ESM이 module resolution을 어떻게 하는지 알아보면 된다.
+
+# Context
+
+context api는 react 컴포넌트 트리 안에서 global 한 state를 공유할 수 있다.
+`Provider` 로 그 경계를 구분하며 `Provider` 자식으로 위치한 컴포넌트에서는 context에서 정의한 state가 공유된다. 이는 prop drilling을 하지 않아도 된다는 장점이 있으나 사용이 번거롭다는 단점이 존재한다.
+
+전역 state를 컴포넌트 내부로 들이는 순간부터 컴포넌트와 전역 state 간에 종속성이 발생한다. 뿐만 아니라 해당 state를 사용한 컴포넌트 간에도 종속성이 생길 수 있으므로 사용에 주의해야 한다. 종속성이 발생해도 괜찮은 case를 잘 판단하자. 예를 들어서 `로그인 상태` 라는 state 는 app 전체적으로 공유되어도 상관이 없으므로 너무 작은 단위의 컴포넌트만 아니면 사용에는 거의 무방하다. 만약 `<Button>` 과 같은 공용 컴포넌트가 `로그인 상태` 에 따라서 style이 변해야하는 경우가 있다고 하면 `<Button>` 컴포넌트 내부말고 사용하는 위치에서 `로그인 상태` 를 받아서 props로 전달하는 방법이 좋다.
+
+실습 : `Context` 를 사용하여 간단한 TODO list 구현하기
+
+# Error Boundary
+
+React 16 버전부터 `<ErrorBoundary>` 를 통해서 에러 바운더리 내부에서 발생하는 에러를 포착해 Fallback UI를 손쉽게 랜더링 할 수 있다. 아래와 같은 에러는 잡아 내지 못한다.
+
+- 이벤트 핸들러
+- 비동기 코드 `setTimeout`, `requestAnimationFrame`
+- SSR
+- Error Boundary 자체에서 발생하는 에러
+
+# HOC
+
+고차 컴포넌트는 컴포넌트 로직을 재사용하기 위한 React의 기술이다. API의 일부가 아니고 React의 구성적 특성에서 나오는 패턴이다.
+
+공식문서에서 소개하고 있는 코드는 클래스형 컴포넌트이다.
+두 코드는 확연히 다른 작업을 하지만 같은 pattern 을 가지고 있다.
+
+- 컴포넌트가 마운트되면, change listener 를 `DataSource` 에 추가
+- 리스너 안에서, 데이터 소스가 변경되면 `setState` 를 호출
+- 컴포넌트가 언마운트 되면 change listener를 삭제
+
+같은 패턴을 보인다면 해당 패턴을 한 곳에 정의하고 많은 컴포넌트에서 공유할 수 있게 하면 코드 재사용성이 증가한다. 이러한 경우에 HOC를 사용하면 좋다.
+
+공식문서에 예제코드에서는 HOC 내부에서 컴포넌트를 return 하도록 설정이 되어있다. 이 때 state를 사용하게 되는데 함수형 컴포넌트는 hook을 사용하기 때문에 공식문서에 적혀있는 예제코드를 그대로 사용하기에는 무리가 있다.
+
+HOC 는 각기 다른 state를 업데이트하고 각기 다른 컴포넌트를 랜더링 하지만 그 과정(패턴)이 동일하다면 하나의 컴포넌트로 래핑하여 코드 재사용성을 높이자는 취지가 있는 것 같다.
+
+패턴이 같기 때문에 HOC는 동일한 input에 동일한 output을 내는 순수함수다.
+
+HOC를 작성할 때는 원본 컴포넌트를 변경하는 로직을 구현하면 안된다는 Rule이 있다.
+공식문서에 `InputComponent` 의 프로토타입을 직접적으로 변경하는 로직을 보면 그 이유를 알 수 있다. `InputComponent` 컴포넌트를 조작하여 `EnhancedComponent` 에 저장하게 되는데 이 `EnhancedComponent` 에 또 다른 HOC를 적용하게 된다면 지금 `HOC` 가 무시된다. 또한 생명주기 메소드가 존재하지 않는 함수형 컴포넌트 에서도 작동하지 않는다.
+
+우리는 앞에서 컴포넌트 합성에 대한 개념을 배웠다. 이 개념을 `HOC` 에 적용시켜 변경 대신에 조합을 사용해보자. `InputComponent`를 한 번 더 다른 컴포넌트로 래핑한 후에 `InputComponent` 프로토타입에 적용했던 `componentDidUpdate` 함수를 Wrapper 컴포넌트의 `componentDidUpdate` 에 적용시켜주고 인자로 전달된 컴포넌트(`InputComponent`)를 랜더링 시켜준다.
+
+이렇게 하면 원본 컴포넌트를 변경하지 않고 컴포넌트에 기능을 추가할 수 있다.
+이러한 wrapping 방식을 통해서 관련없는 props도 전달이 가능하다.
+이는 관심사를 분리하는 행위이며 Wrapper Component 에서 주입한 props와 원본 컴포넌트에 그대로 주입되어야 하는 props를 구분해 코드 가독성을 높여준다.
+
+아래는 공식문서에 소개된 간단한 예제이다.
+
+```jsx
+const { extraProp, ...passThroughProps } = this.props;
+// passThroughProps는 원본 컴포넌트에 그대로 주입되어야 하는 props를 의미한다.
+const injectedProp = someStateOrInstanceMethod; // HOC에서 주입되어야 하는 props
+
+// wrapped component에 props를 전달합니다.
+return <WrappedComponent injectedProp={injectedProp} {...passThroughProps} />;
+```
+
+이러한 패턴은 클래스형 컴포넌트 뿐 아니라 함수형 컴포넌트에도 적용이 가능하니 기억해 두면 코드 가독성을 챙길 수 있다.
+
+### 주의사항
+
+HOC를 사용하면서 몇 가지 주의사항이 존재한다.
+
+- render 메소드 안에서 고차 컴포넌트를 사용하지 마세요
+
+```jsx
+render() {
+  const EnhancedComponent = enhance(someComponent);
+  return <EnhancedComponent />
+}
+```
+
+위 코드는 `render` 메소드가 호출 될 때마다 새로운 `EnhancedComponent` 를 만든다. 이렇게 되면 성능상 이슈가 발생하며 컴포넌트의 `state` 가 초기화 되어 일관성을 해친다.
+
+- 정적 메소드는 반드시 따로 복사하세요.
+
+다음은 `WrappedComponent` 에 정적 메소드를 정의하여 HOC를 적용하는 예제이다. 문제가 있는 코드다.
+
+```jsx
+WrappedComponent.staticMethod = () => {};
+
+const EnhancedComponent = enhance(WrappedComponent);
+
+typeof EnhancedComponent.staticMethod === "undefined"; // true
+```
+
+이 문제를 해결하기 위해서는 아래와 같이 해야한다.
+
+```jsx
+const enhance = (WrappedComponent) => {
+  class Enhance extends React.Component {
+    /*...*/
+  }
+
+  Enhance.staticMethod = WrappedComponent.staticMethod;
+
+  return Enhance;
+};
+```
+
+WrappedCompoent에 정의된 정적 메소드를 Enhance의 정적 메소드에 복사한 후 return을 해줘야지 정적 메소드가 유지된다.
+
+- ref는 전달되지 않는다.
+
+HOC는 모든 props를 전달하는게 원칙이지만 `refs` 는 전달되지 않는다. 이는 `refs` 가 props로 취급이 되는게 아니라 `key` 처럼 특별하게 취급되기 때문이다. HOC의 결과로 나온 컴포넌트에 `ref` 를 추가할 경우 `ref`는 래핑된 컴포넌트가 아닌 가장 바깥쪽 컨테이너 컴포넌트의 인스턴스를 나타낸다.
+해당 문제를 해결하기 위해서는 `React.forwardRef` API를 사용해야 한다.
+
+# JSX 이해하기
+
+- 스코프내에 컴포넌트가 존재해야 한다.
+- `<script>` 태그를 통해 React를 불러왔다면 React는 전역변수로 존재해서 별도로 import 할 필요가 없다.
+
+##### JSX 타입을 위한 점 표기법 사용
+
+```tsx
+import React from "react";
+
+const MyComponents = {
+  DatePicker: function DatePicker(props) {
+    return <div>Imagine a {props.color} datepicker here.</div>;
+  },
+};
+
+function BlueDatePicker() {
+  return <MyComponents.DatePicker color="blue" />;
+}
+```
+
+##### 사용자 정의 컴포넌트는 반드시 대문자로 시작해야한다.
+
+소문자로 시작하는 경우는 내장 컴포넌트라는 것을 의미하며 `'div'`,`'span'` 같은 문자열 형태로 `React.createElement` 에 전달된다. `<Foo />` 와 같은 대문자로 시작하는 타임들은 `React.createElement(Foo)`의 형태로 컴파일 된다.
+
+#### null, boolean, undefined는 무시
+
+boolean이 무시가 되기 때문에 아래와 같은 문법을 사용할 수 있다.
+
+```tsx
+<div>
+  {showHeader && <Header />}
+  <Content />
+</div>
+```
+
+한 가지 주의해야 할 점은 boolean 이 무시된다해서 `falsy` 값까지 무시되는 건 아니라는 것이다.
+
+```tsx
+<div>{props.messages.length && <MessageList messages={props.messages} />}</div>
+```
+
+위와 같은 경우에 `0` 은 falsy 값이어서 무시되지 않고 랜더링 된다. 이를 수정하기 위해서는
+`&&` 연산자 앞의 값이 boolean 이 오게끔 수정하면 된다.
+
+```tsx
+<div>
+  {props.message.length > 0 && <MessageList messages={props.messages}>}
+</div>
+```
